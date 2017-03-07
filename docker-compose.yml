@@ -11,13 +11,22 @@ services:
       MYSQL_DATABASE: drupal
     expose:
       - "3306"
+    command: mysqld --sql_mode="STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
+  mysql_logger:
+    restart: always
+    build: ./mysql_logger
+    links:
+      - mysql:mysql
   civicrm:
     restart: always
     build: ./civicrm
     links:
-      - mysql:mysql
+      - mysql_logger:mysql
     ports:
       - "80:80"
+    volumes:
+      - ./lcbru_civicrm:/lcbru_civicrm
+      - ./civicrm:/civicrm
     environment:
       MYSQL_ROOT_PASSWORD: Lupin!
       MYSQL_USER: civicrm_user
