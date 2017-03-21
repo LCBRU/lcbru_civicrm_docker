@@ -37,3 +37,4 @@ services:
       DRUPAL_ACCOUNT_PASS: baggins
       DRUPAL_SITE_MAIL: lcbruit@le.ac.uk
       DRUPAL_SITE_NAME: Development CiviCRM
+      ENABLED_PACKAGES: lcbru;genvasc_labels
