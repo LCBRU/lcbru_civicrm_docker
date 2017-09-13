@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.6                                                |
+ | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -42,7 +42,7 @@
       <td class="html-adjust">{$form.description.html}</td>
     </tr>
     <tr class="crm-contribution-form-block-organisation_name">
-      <td class="label">{$form.contact_id.label}&nbsp;{help id="id-financial-owner" file="CRM/Contact/Form/Contact.hlp"}</td>
+      <td class="label">{$form.contact_id.label}&nbsp;{help id="id-financial-owner" file="CRM/Financial/Form/FinancialAccount.hlp"}</td>
       <td class="html-adjust">{$form.contact_id.html}<br />
         <span class="description">{ts}Use this field to indicate the organization that owns this account.{/ts}</span>
       </td>
@@ -58,7 +58,7 @@
       </td>
     </tr>
     <tr class="crm-contribution-form-block-account_type_code">
-      <td class="label">{$form.account_type_code.label}</td>
+      <td class="label">{$form.account_type_code.label}&nbsp;{help id="id-account-type-code" file="CRM/Financial/Form/FinancialAccount.hlp"}</td>
       <td class="html-adjust">{$form.account_type_code.html}<br />
         <span class="description">{ts}Enter an account type code for this account. Account type codes are required for QuickBooks integration and will be included in all accounting batch exports.{/ts}</span>
       </td>
@@ -91,7 +91,41 @@
         <span class="description">{ts}Is this account to be used as the default account for its financial account type when associating financial accounts with financial types?{/ts}</span>
       </td>
     </tr>
+    {if $form.opening_balance}
+      <tr class="crm-contribution-form-block-opening_balance">
+        <td class="label">{$form.opening_balance.label}</td>
+        <td class="html-adjust">{$form.opening_balance.html}
+        </td>
+      </tr>
+      <tr class="crm-contribution-form-block-current_period_opening_balance">
+        <td class="label">{$form.current_period_opening_balance.label}</td>
+        <td class="html-adjust">{$form.current_period_opening_balance.html}
+        </td>
+      </tr>
+    {/if}
   </table>
 {/if}
   <div class="crm-submit-buttons">{include file="CRM/common/formButtons.tpl" location="botttom"}</div>
 </div>
+{if $form.opening_balance}
+{literal}
+  <script type="text/javascript">
+    CRM.$(function($) {
+      $('#financial_account_type_id').on('change', showHideElement);
+      showHideElement();
+      function showHideElement() {
+        var financialAccountType = $('#financial_account_type_id').val();
+        var financialAccountTypes = '{/literal}{$limitedAccount}{literal}';
+	if ($.inArray(financialAccountType, financialAccountTypes) > -1) {
+	  $('tr.crm-contribution-form-block-current_period_opening_balance').show();
+	  $('tr.crm-contribution-form-block-opening_balance').show();
+	}
+	else {
+	  $('tr.crm-contribution-form-block-current_period_opening_balance').hide();
+	  $('tr.crm-contribution-form-block-opening_balance').hide();
+	}
+      }
+    });
+  </script>
+{/literal}
+{/if}

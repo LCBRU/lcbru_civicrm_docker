@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.6                                                |
+ | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  * $Id$
  *
  */
@@ -54,8 +54,20 @@ class CRM_Report_Form_Mailing_Clicks extends CRM_Report_Form {
   );
 
   /**
+   * This report has not been optimised for group filtering.
+   *
+   * The functionality for group filtering has been improved but not
+   * all reports have been adjusted to take care of it. This report has not
+   * and will run an inefficient query until fixed.
+   *
+   * CRM-19170
+   *
+   * @var bool
    */
+  protected $groupFilterNotOptimised = TRUE;
+
   /**
+   * Class constructor.
    */
   public function __construct() {
     $this->_columns = array();
@@ -134,7 +146,6 @@ class CRM_Report_Form_Mailing_Clicks extends CRM_Report_Form {
         'email' => array(
           'title' => ts('Email'),
           'no_repeat' => TRUE,
-          'required' => TRUE,
         ),
       ),
       'grouping' => 'contact-fields',
@@ -151,6 +162,16 @@ class CRM_Report_Form_Mailing_Clicks extends CRM_Report_Form {
       'fields' => array(
         'url' => array(
           'title' => ts('Click through URL'),
+        ),
+      ),
+      // To do this filter should really be like mailing id filter a multi select, However
+      // Not clear on how to make filter dependant on selected mailings at this stage so have set a
+      // text filter which works for now
+      'filters' => array(
+        'url' => array(
+          'title' => ts('URL'),
+          'type' => CRM_Utils_Type::T_STRING,
+          'operator' => 'like',
         ),
       ),
       'order_bys' => array(
@@ -199,6 +220,7 @@ class CRM_Report_Form_Mailing_Clicks extends CRM_Report_Form {
       $this->_columnHeaders["civicrm_mailing_click_count"]['title'] = ts('Click Count');
     }
 
+    $this->_selectClauses = $select;
     $this->_select = "SELECT " . implode(', ', $select) . " ";
   }
 
@@ -221,7 +243,7 @@ class CRM_Report_Form_Mailing_Clicks extends CRM_Report_Form {
     $this->_from .= "
         INNER JOIN civicrm_mailing_event_queue
           ON civicrm_mailing_event_queue.contact_id = {$this->_aliases['civicrm_contact']}.id
-        INNER JOIN civicrm_email {$this->_aliases['civicrm_email']}
+        LEFT JOIN civicrm_email {$this->_aliases['civicrm_email']}
           ON civicrm_mailing_event_queue.email_id = {$this->_aliases['civicrm_email']}.id
         INNER JOIN civicrm_mailing_event_trackable_url_open
           ON civicrm_mailing_event_trackable_url_open.event_queue_id = civicrm_mailing_event_queue.id
@@ -247,14 +269,14 @@ class CRM_Report_Form_Mailing_Clicks extends CRM_Report_Form {
   }
 
   public function groupBy() {
-
     $this->_groupBy = '';
     if (!empty($this->_params['charts'])) {
-      $this->_groupBy = " GROUP BY {$this->_aliases['civicrm_mailing']}.id";
+      $groupBy = "{$this->_aliases['civicrm_mailing']}.id";
     }
     else {
-      $this->_groupBy = " GROUP BY civicrm_mailing_event_trackable_url_open.id";
+      $groupBy = "civicrm_mailing_event_trackable_url_open.id";
     }
+    $this->_groupBy = CRM_Contact_BAO_Query::getGroupByFromSelectColumns($this->_selectClauses, $groupBy);
   }
 
   public function postProcess() {
@@ -310,6 +332,15 @@ class CRM_Report_Form_Mailing_Clicks extends CRM_Report_Form {
   public function alterDisplay(&$rows) {
     $entryFound = FALSE;
     foreach ($rows as $rowNum => $row) {
+
+      // If the email address has been deleted
+      if (array_key_exists('civicrm_email_email', $row)) {
+        if (empty($rows[$rowNum]['civicrm_email_email'])) {
+          $rows[$rowNum]['civicrm_email_email'] = '<del>Email address deleted</del>';
+        }
+        $entryFound = TRUE;
+      }
+
       // make count columns point to detail report
       // convert display name to links
       if (array_key_exists('civicrm_contact_sort_name', $row) &&

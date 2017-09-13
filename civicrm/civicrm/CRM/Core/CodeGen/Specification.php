@@ -21,11 +21,9 @@ class CRM_Core_CodeGen_Specification {
 
     echo "Parsing schema description " . $schemaPath . "\n";
     $dbXML = CRM_Core_CodeGen_Util_Xml::parse($schemaPath);
-    // print_r( $dbXML );
 
     echo "Extracting database information\n";
     $this->database = &$this->getDatabase($dbXML);
-    // print_r( $this->database );
 
     $this->classNames = array();
 
@@ -37,7 +35,6 @@ class CRM_Core_CodeGen_Specification {
     $this->tables = $this->orderTables($this->tables);
 
     // add archive tables here
-    $archiveTables = array();
     foreach ($this->tables as $name => $table) {
       if ($table['archive'] == 'true') {
         $name = 'archive_' . $table['name'];
@@ -187,6 +184,7 @@ class CRM_Core_CodeGen_Specification {
     $base = $this->value('base', $tableXML);
     $sourceFile = "xml/schema/{$base}/{$klass}.xml";
     $daoPath = "{$base}/DAO/";
+    $baoPath = __DIR__ . '/../../../' . str_replace(' ', '', "{$base}/BAO/");
     $pre = str_replace('/', '_', $daoPath);
     $this->classNames[$name] = $pre . $klass;
 
@@ -206,6 +204,8 @@ class CRM_Core_CodeGen_Specification {
       'objectName' => $klass,
       'labelName' => substr($name, 8),
       'className' => $this->classNames[$name],
+      'bao' => (file_exists($baoPath . $klass . '.php') ? str_replace('DAO', 'BAO', $this->classNames[$name]) : $this->classNames[$name]),
+      'entity' => $klass,
       'attributes_simple' => trim($database['tableAttributes_simple']),
       'attributes_modern' => trim($database['tableAttributes_modern']),
       'comment' => $this->value('comment', $tableXML),
@@ -365,6 +365,7 @@ class CRM_Core_CodeGen_Specification {
     if (!empty($field['html'])) {
       $validOptions = array(
         'type',
+        'formatType',
         /* Fixme: prior to CRM-13497 these were in a flat structure
         // CRM-13497 moved them to be nested within 'html' but there's no point
         // making that change in the DAOs right now since we are in the process of
@@ -381,6 +382,21 @@ class CRM_Core_CodeGen_Specification {
         }
       }
     }
+
+    // in multilingual context popup, we need extra information to create appropriate widget
+    if ($fieldXML->localizable) {
+      if (isset($fieldXML->html)) {
+        $field['widget'] = (array) $fieldXML->html;
+      }
+      else {
+        // default
+        $field['widget'] = array('type' => 'Text');
+      }
+      if (isset($fieldXML->required)) {
+        $field['widget']['required'] = $this->value('required', $fieldXML);
+      }
+    }
+
     $field['pseudoconstant'] = $this->value('pseudoconstant', $fieldXML);
     if (!empty($field['pseudoconstant'])) {
       //ok this is a bit long-winded but it gets there & is consistent with above approach
@@ -397,7 +413,7 @@ class CRM_Core_CodeGen_Specification {
         'nameColumn',
         // Where clause snippet (will be joined to the rest of the query with AND operator)
         'condition',
-        // callback funtion incase of static arrays
+        // callback function incase of static arrays
         'callback',
         // Path to options edit form
         'optionEditPath',
@@ -560,7 +576,7 @@ class CRM_Core_CodeGen_Specification {
       'key' => trim($this->value('key', $foreignXML)),
       'import' => $this->value('import', $foreignXML, FALSE),
       'export' => $this->value('import', $foreignXML, FALSE),
-      // we do this matching in a seperate phase (resolveForeignKeys)
+      // we do this matching in a separate phase (resolveForeignKeys)
       'className' => NULL,
       'onDelete' => $this->value('onDelete', $foreignXML, FALSE),
     );
@@ -645,18 +661,17 @@ class CRM_Core_CodeGen_Specification {
 
   /**
    * Sets the size property of a textfield.
-   * See constants defined in CRM_Utils_Type for possible values
+   *
+   * @param string $fieldXML
+   *
+   * @return null|string
    */
   protected function getSize($fieldXML) {
     // Extract from <size> tag if supplied
     if (!empty($fieldXML->html) && $this->value('size', $fieldXML->html)) {
-      $const = 'CRM_Utils_Type::' . strtoupper($fieldXML->html->size);
-      if (defined($const)) {
-        return $const;
-      }
+      return $this->value('size', $fieldXML->html);
     }
     // Infer from <length> tag if <size> was not explicitly set or was invalid
-
     // This map is slightly different from CRM_Core_Form_Renderer::$_sizeMapper
     // Because we usually want fields to render as smaller than their maxlength
     $sizes = array(

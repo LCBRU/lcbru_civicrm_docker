@@ -5,6 +5,7 @@ Required vars: activitySet
 <table>
   <thead>
   <tr>
+    <th></th>
     <th>{{ts('Activity')}}</th>
     <th>{{ts('Status')}}</th>
     <th>{{ts('Reference')}}</th>
@@ -17,7 +18,10 @@ Required vars: activitySet
   <tbody ui-sortable ng-model="activitySet.activityTypes">
   <tr ng-repeat="activity in activitySet.activityTypes">
     <td>
-      <span class="icon ui-icon-grip-dotted-vertical"></span>
+      <i class="crm-i fa-arrows grip-n-drag"></i>
+    </td>
+    <td>
+      <i class="crm-i {{ activityTypes[activity.name].icon }}"></i>
       {{ activity.name }}
     </td>
     <td>
@@ -43,7 +47,7 @@ Required vars: activitySet
     </td>
     <td>
       <input
-        class="number"
+        class="number crm-form-text"
         type="text"
         ng-pattern="/^-?[0-9]*$/"
         ng-model="activity.reference_offset"
@@ -64,7 +68,7 @@ Required vars: activitySet
     </td>
     <td>
       <a class="crm-hover-button"
-         crm-icon="trash"
+         crm-icon="fa-trash"
          ng-show="isActivityRemovable(activitySet, activity)"
          ng-click="removeItem(activitySet.activityTypes, activity)"
          title="{{ts('Remove')}}">
@@ -77,7 +81,7 @@ Required vars: activitySet
   <tr class="addRow">
     <td colspan="6">
       <span crm-add-name
-           crm-options="activityTypeNames"
+           crm-options="activityTypeOptions"
            crm-var="newActivity"
            crm-on-add="addActivity(activitySet, newActivity)"
            placeholder="{{ts('Add activity')}}"

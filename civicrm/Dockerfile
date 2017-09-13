@@ -2,10 +2,13 @@ FROM php:5-apache
 MAINTAINER Richard Bramley <rabramley@gmail.com>
 
 # install the PHP extensions we need
-RUN apt-get update && apt-get install -y libpng12-dev libjpeg-dev libpq-dev mysql-client vim wget zip
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y libpng12-dev libjpeg-dev libpq-dev mysql-client vim wget zip cron supervisor ssmtp
 RUN docker-php-ext-configure gd --with-png-dir=/usr --with-jpeg-dir=/usr
 RUN docker-php-ext-install gd
-RUN docker-php-ext-install mbstring pdo pdo_mysql pdo_pgsql zip mysql
+RUN docker-php-ext-install mbstring pdo pdo_mysql pdo_pgsql zip mysql mysqli sockets
+
+# supervisord config file
+COPY ./supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Needed for pdo_dblib install because otherwise it doesn't find it
 RUN apt-get install -y freetds-dev
@@ -21,7 +24,7 @@ RUN mv drush /usr/local/bin
 
 RUN drush init -y
 
-ADD civicrm-4.6.26-drupal.tar.gz /civicrm
+ADD civicrm-4.7.17-drupal.tar.gz /civicrm
 ADD info.php /
 ADD dblib_driver_for_sql_server /dblib_driver_for_sql_server
 
@@ -62,4 +65,4 @@ RUN chown -R www-data:www-data /civicrm
 RUN chown -R www-data:www-data /var/www/html/sites/all/modules/dblib_driver_for_sql_server/
 RUN chown -R www-data:www-data /var/www/html/includes/database/dblib
 
-CMD /usr/local/bin/install_drupal_modules.sh
+CMD /usr/local/bin/configure_drupal_and_civi.sh

@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.6                                                |
+ | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  * $Id$
  *
  */
@@ -167,9 +167,8 @@ class CRM_Member_Form_MembershipType extends CRM_Member_Form_MembershipConfig {
     $this->add('date', 'month_fixed_period_rollover_day', ts('Fixed Period Rollover Day'),
       CRM_Core_SelectValues::date(NULL, 'd'), FALSE
     );
-
     $this->add('select', 'financial_type_id', ts('Financial Type'),
-      array('' => ts('- select -')) + CRM_Contribute_PseudoConstant::financialType(), TRUE, array('class' => 'crm-select2')
+      array('' => ts('- select -')) + CRM_Financial_BAO_FinancialType::getAvailableFinancialTypes($financialTypes, $this->_action), TRUE, array('class' => 'crm-select2')
     );
 
     $relTypeInd = CRM_Contact_BAO_Relationship::getContactRelationshipType(NULL, NULL, NULL, NULL, TRUE);
@@ -281,6 +280,14 @@ class CRM_Member_Form_MembershipType extends CRM_Member_Form_MembershipConfig {
       if (!CRM_Utils_Rule::qfDate($params['fixed_period_rollover_day'])) {
         $errors['fixed_period_rollover_day'] = ts('Please enter valid Fixed Period Rollover Day');
       }
+    }
+
+    // CRM-16189
+    try {
+      CRM_Financial_BAO_FinancialAccount::validateFinancialType($params['financial_type_id']);
+    }
+    catch (CRM_Core_Exception $e) {
+      $errors['financial_type_id'] = $e->getMessage();
     }
 
     return empty($errors) ? TRUE : $errors;

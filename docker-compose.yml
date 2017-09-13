@@ -26,7 +26,6 @@ services:
       - "80:80"
     volumes:
       - ./lcbru_civicrm:/lcbru_civicrm
-      - ./civicrm:/civicrm
     environment:
       MYSQL_ROOT_PASSWORD: Lupin!
       MYSQL_USER: civicrm_user
@@ -37,4 +36,6 @@ services:
       DRUPAL_ACCOUNT_PASS: baggins
       DRUPAL_SITE_MAIL: lcbruit@le.ac.uk
       DRUPAL_SITE_NAME: Development CiviCRM
-      ENABLED_PACKAGES: lcbru;genvasc_labels
+      ENABLED_PACKAGES: lcbru;fast;participant_search
+      BASE_URL: uhlbriccsapp06
+      INSTALL_DATABASE: 1

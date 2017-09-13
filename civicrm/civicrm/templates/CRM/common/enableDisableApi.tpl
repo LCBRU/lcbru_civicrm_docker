@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.6                                                |
+ | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -31,7 +31,7 @@
 
     function successMsg() {
       {/literal} {* client-side variable substitutions in smarty are AWKWARD! *}
-      var msg = enabled ? '{ts escape="js" 1="<em>%1</em>"}%1 Disabled{/ts}' : '{ts escape="js" 1="<em>%1</em>"}%1 Enabled{/ts}'{literal};
+      var msg = enabled ? '{ts escape="js" 1="%1"}%1 Disabled{/ts}' : '{ts escape="js" 1="%1"}%1 Enabled{/ts}'{literal};
       return ts(msg, {1: fieldLabel});
     }
 
@@ -42,13 +42,20 @@
 
     function save() {
       $row.closest('table').block();
-      CRM.api3(info.entity, info.action, {id: info.id, field: 'is_active', value: enabled ? 0 : 1}, {success: successMsg}).done(refresh);
+      var params = {id: info.id};
+      if (info.action == 'setvalue') {
+        params.field = 'is_active';
+        params.value = enabled ? 0 : 1;
+      } else {
+        params.is_active = enabled ? 0 : 1;
+      }
+      CRM.api3(info.entity, info.action, params, {success: successMsg}).done(refresh);
     }
 
     function checkResponse(e, response) {
       if (response.illegal) {
         $(this).dialog('option', 'buttons', [
-          {text: {/literal}'{ts escape="js"}Close{/ts}'{literal}, click: function() {$(this).dialog('close');}, icons: {primary: 'ui-icon-close'}}
+          {text: {/literal}'{ts escape="js"}Close{/ts}'{literal}, click: function() {$(this).dialog('close');}, icons: {primary: 'fa-times'}}
         ]);
       }
     }

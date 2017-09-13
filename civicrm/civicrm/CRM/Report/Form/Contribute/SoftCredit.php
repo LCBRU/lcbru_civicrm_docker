@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.6                                                |
+ | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  * $Id$
  *
  */
@@ -51,6 +51,19 @@ class CRM_Report_Form_Contribute_SoftCredit extends CRM_Report_Form {
   );
 
   public $_drilldownReport = array('contribute/detail' => 'Link to Detail Report');
+
+  /**
+   * This report has not been optimised for group filtering.
+   *
+   * The functionality for group filtering has been improved but not
+   * all reports have been adjusted to take care of it. This report has not
+   * and will run an inefficient query until fixed.
+   *
+   * CRM-19170
+   *
+   * @var bool
+   */
+  protected $groupFilterNotOptimised = TRUE;
 
   /**
    */
@@ -218,8 +231,9 @@ class CRM_Report_Form_Contribute_SoftCredit extends CRM_Report_Form {
           'id' => array(
             'name' => 'id',
             'title' => ts('Financial Type'),
+            'type' => CRM_Utils_Type::T_INT,
             'operatorType' => CRM_Report_Form::OP_MULTISELECT,
-            'options' => CRM_Contribute_PseudoConstant::financialType(),
+            'options' => CRM_Financial_BAO_FinancialType::getAvailableFinancialTypes(),
           ),
         ),
         'grouping' => 'softcredit-fields',
@@ -232,21 +246,12 @@ class CRM_Report_Form_Contribute_SoftCredit extends CRM_Report_Form {
             'required' => TRUE,
             'no_display' => TRUE,
           ),
-          'total_amount' => array(
-            'title' => ts('Amount Statistics'),
-            'default' => TRUE,
-            'statistics' => array(
-              'sum' => ts('Aggregate Amount'),
-              'count' => ts('Contributions'),
-              'avg' => ts('Average'),
-            ),
-          ),
         ),
         'grouping' => 'softcredit-fields',
         'filters' => array(
           'receive_date' => array('operatorType' => CRM_Report_Form::OP_DATE),
           'currency' => array(
-            'title' => 'Currency',
+            'title' => ts('Currency'),
             'operatorType' => CRM_Report_Form::OP_MULTISELECT,
             'options' => CRM_Core_OptionGroup::values('currencies_enabled'),
             'default' => NULL,
@@ -258,9 +263,6 @@ class CRM_Report_Form_Contribute_SoftCredit extends CRM_Report_Form {
             'options' => CRM_Contribute_PseudoConstant::contributionStatus(),
             'default' => array(1),
           ),
-          'total_amount' => array(
-            'title' => ts('Contribution Amount'),
-          ),
         ),
       ),
       'civicrm_contribution_soft' => array(
@@ -271,6 +273,15 @@ class CRM_Report_Form_Contribute_SoftCredit extends CRM_Report_Form {
             'no_display' => TRUE,
             'default' => TRUE,
           ),
+          'amount' => array(
+            'title' => ts('Amount Statistics'),
+            'default' => TRUE,
+            'statistics' => array(
+              'sum' => ts('Aggregate Amount'),
+              'count' => ts('Contributions'),
+              'avg' => ts('Average'),
+            ),
+          ),
           'id' => array(
             'default' => TRUE,
             'no_display' => TRUE,
@@ -279,11 +290,14 @@ class CRM_Report_Form_Contribute_SoftCredit extends CRM_Report_Form {
         ),
         'filters' => array(
           'soft_credit_type_id' => array(
-            'title' => 'Soft Credit Type',
+            'title' => ts('Soft Credit Type'),
             'operatorType' => CRM_Report_Form::OP_MULTISELECT,
             'options' => CRM_Core_OptionGroup::values('soft_credit_type'),
             'default' => NULL,
             'type' => CRM_Utils_Type::T_STRING,
+          ),
+          'amount' => array(
+            'title' => ts('Soft Credit Amount'),
           ),
         ),
         'grouping' => 'softcredit-fields',
@@ -300,6 +314,7 @@ class CRM_Report_Form_Contribute_SoftCredit extends CRM_Report_Form {
         'title' => ts('Campaign'),
         'operatorType' => CRM_Report_Form::OP_MULTISELECT,
         'options' => $this->activeCampaigns,
+        'type' => CRM_Utils_Type::T_INT,
       );
     }
 
@@ -378,6 +393,7 @@ class CRM_Report_Form_Contribute_SoftCredit extends CRM_Report_Form {
         }
       }
     }
+    $this->selectClause = $select;
 
     $this->_select = 'SELECT ' . implode(', ', $select) . ' ';
   }
@@ -456,6 +472,7 @@ class CRM_Report_Form_Contribute_SoftCredit extends CRM_Report_Form {
 
   public function groupBy() {
     $this->_rollup = 'WITH ROLLUP';
+    $this->_select = CRM_Contact_BAO_Query::appendAnyValueToSelect($this->selectClause, array("{$this->_aliases['civicrm_contribution_soft']}.contact_id", "constituentname.id"));
     $this->_groupBy = "
 GROUP BY {$this->_aliases['civicrm_contribution_soft']}.contact_id, constituentname.id {$this->_rollup}";
   }
@@ -474,9 +491,9 @@ GROUP BY {$this->_aliases['civicrm_contribution_soft']}.contact_id, constituentn
     $statistics = parent::statistics($rows);
 
     $select = "
-        SELECT COUNT({$this->_aliases['civicrm_contribution']}.total_amount ) as count,
-               SUM({$this->_aliases['civicrm_contribution']}.total_amount ) as amount,
-               ROUND(AVG({$this->_aliases['civicrm_contribution']}.total_amount), 2) as avg,
+        SELECT COUNT({$this->_aliases['civicrm_contribution_soft']}.amount ) as count,
+               SUM({$this->_aliases['civicrm_contribution_soft']}.amount ) as amount,
+               ROUND(AVG({$this->_aliases['civicrm_contribution_soft']}.amount), 2) as avg,
                {$this->_aliases['civicrm_contribution']}.currency as currency
         ";
 

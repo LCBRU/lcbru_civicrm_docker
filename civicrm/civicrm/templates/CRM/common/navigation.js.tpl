@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.6                                                |
+ | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -60,10 +60,10 @@
 {if $config->userFramework neq 'Joomla'}{literal}
   $('body').append(menuMarkup);
 
+  $('#civicrm-menu').css({position: "fixed", top: "0px"});
+
   //Track Scrolling
   $(window).scroll(function () {
-    var scroll = document.documentElement.scrollTop || document.body.scrollTop;
-    $('#civicrm-menu').css({top: "scroll", position: "fixed", top: "0px"});
     $('div.sticky-header').css({top: "23px", position: "fixed"});
   });
 
@@ -141,6 +141,7 @@ $('#civicrm-menu').ready(function() {
       $.Menu.closeAll();
     })
     .on('focus', function() {
+      setQuickSearchValue();
       if ($(this).attr('style').indexOf('14em') < 0) {
         $(this).animate({width: '14em'});
       }
@@ -156,7 +157,7 @@ $('#civicrm-menu').ready(function() {
     if ($('#crm-notification-container').length) {
       var alert = CRM.alert({/literal}'<a href="#" id="crm-restore-menu" style="text-align: center; margin-top: -8px;">{ts escape='js'}Restore CiviCRM Menu{/ts}</a>'{literal}, '', 'none', {expires: 10000});
       $('#crm-restore-menu')
-        .button({icons: {primary: 'ui-icon-arrowreturnthick-1-w'}})
+        .button({icons: {primary: 'fa-undo'}})
         .click(function(e) {
           e.preventDefault();
           alert.close();
@@ -167,15 +168,29 @@ $('#civicrm-menu').ready(function() {
     }
     e.preventDefault();
   });
-  $('.crm-quickSearchField').click(function() {
-    var label = $(this).text();
-    var value = $('input', this).val();
+  function setQuickSearchValue() {
+    var $selection = $('.crm-quickSearchField input:checked'),
+      label = $selection.parent().text(),
+      value = $selection.val();
     // These fields are not supported by advanced search
-    if (value === 'first_name' || value === 'last_name') {
+    if (!value || value === 'first_name' || value === 'last_name') {
       value = 'sort_name';
     }
-    $('#sort_name_navigation').attr({name: value, placeholder: label}).focus();
+    $('#sort_name_navigation').attr({name: value, placeholder: label});
+  }
+  $('.crm-quickSearchField').click(function() {
+    setQuickSearchValue();
+    $('#sort_name_navigation').focus();
   });
+  // Set & retrieve default value
+  if (window.localStorage) {
+    $('.crm-quickSearchField').click(function() {
+      localStorage.quickSearchField = $('input', this).val();
+    });
+    if (localStorage.quickSearchField) {
+      $('.crm-quickSearchField input[value=' + localStorage.quickSearchField + ']').prop('checked', true);
+    }
+  }
   // redirect to view page if there is only one contact
   $('#id_search_block').on('submit', function() {
     var $menu = $('#sort_name_navigation').autocomplete('widget');

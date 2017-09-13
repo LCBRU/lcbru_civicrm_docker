@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.6                                                |
+ | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,13 +28,13 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
- * $Id$
- *
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 class CRM_Case_XMLProcessor_Process extends CRM_Case_XMLProcessor {
   /**
-   * @param $caseType
+   * Run.
+   *
+   * @param string $caseType
    * @param array $params
    *
    * @return bool
@@ -44,7 +44,7 @@ class CRM_Case_XMLProcessor_Process extends CRM_Case_XMLProcessor {
     $xml = $this->retrieve($caseType);
 
     if ($xml === FALSE) {
-      $docLink = CRM_Utils_System::docURL2("user/case-management/setup");
+      $docLink = CRM_Utils_System::docURL2("user/case-management/set-up");
       CRM_Core_Error::fatal(ts("Configuration file could not be retrieved for case type = '%1' %2.",
         array(1 => $caseType, 2 => $docLink)
       ));
@@ -69,7 +69,7 @@ class CRM_Case_XMLProcessor_Process extends CRM_Case_XMLProcessor {
   public function get($caseType, $fieldSet, $isLabel = FALSE, $maskAction = FALSE) {
     $xml = $this->retrieve($caseType);
     if ($xml === FALSE) {
-      $docLink = CRM_Utils_System::docURL2("user/case-management/setup");
+      $docLink = CRM_Utils_System::docURL2("user/case-management/set-up");
       CRM_Core_Error::fatal(ts("Unable to load configuration file for the referenced case type: '%1' %2.",
         array(1 => $caseType, 2 => $docLink)
       ));
@@ -217,7 +217,7 @@ class CRM_Case_XMLProcessor_Process extends CRM_Case_XMLProcessor {
     $relationshipTypeID = array_search($relationshipTypeName, $relationshipTypes);
 
     if ($relationshipTypeID === FALSE) {
-      $docLink = CRM_Utils_System::docURL2("user/case-management/setup");
+      $docLink = CRM_Utils_System::docURL2("user/case-management/set-up");
       CRM_Core_Error::fatal(ts('Relationship type %1, found in case configuration file, is not present in the database %2',
         array(1 => $relationshipTypeName, 2 => $docLink)
       ));
@@ -421,7 +421,7 @@ AND        a.is_deleted = 0
     $activityTypeInfo = CRM_Utils_Array::value($activityTypeName, $activityTypes);
 
     if (!$activityTypeInfo) {
-      $docLink = CRM_Utils_System::docURL2("user/case-management/setup");
+      $docLink = CRM_Utils_System::docURL2("user/case-management/set-up");
       CRM_Core_Error::fatal(ts('Activity type %1, found in case configuration file, is not present in the database %2',
         array(1 => $activityTypeName, 2 => $docLink)
       ));
@@ -497,7 +497,7 @@ AND        a.is_deleted = 0
 
       // Add parameters for attachments
 
-      $numAttachments = CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME, 'max_attachments');
+      $numAttachments = Civi::settings()->get('max_attachments');
       for ($i = 1; $i <= $numAttachments; $i++) {
         $attachName = "attachFile_$i";
         if (isset($params[$attachName]) && !empty($params[$attachName])) {

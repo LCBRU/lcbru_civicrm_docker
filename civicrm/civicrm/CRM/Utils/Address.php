@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.6                                                |
+ | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -26,9 +26,10 @@
  */
 
 /**
- * Address utilties
+ * Address Utilities
  *
  * @package CRM
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 class CRM_Utils_Address {
 
@@ -66,11 +67,11 @@ class CRM_Utils_Address {
     static $config = NULL;
 
     if (!$format) {
-      $format = CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME, 'address_format');
+      $format = Civi::settings()->get('address_format');
     }
 
     if ($mailing) {
-      $format = CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME, 'mailing_format');
+      $format = Civi::settings()->get('mailing_format');
     }
 
     $formatted = $format;
@@ -90,6 +91,26 @@ class CRM_Utils_Address {
     foreach ($emptyFields as $f) {
       if (!isset($fields[$f])) {
         $fields[$f] = NULL;
+      }
+    }
+
+    //CRM-16876 Display countries in all caps when in mailing mode.
+    if ($mailing && !empty($fields['country'])) {
+      if (Civi::settings()->get('hideCountryMailingLabels')) {
+        $domain = CRM_Core_BAO_Domain::getDomain();
+        $domainLocation = CRM_Core_BAO_Location::getValues(array('contact_id' => $domain->contact_id));
+        $domainAddress = $domainLocation['address'][1];
+        $domainCountryId = $domainAddress['country_id'];
+        if ($fields['country'] == CRM_Core_PseudoConstant::country($domainCountryId)) {
+          $fields['country'] = NULL;
+        }
+        else {
+          //Capitalization display on uppercase to contries with special characters
+          $fields['country'] = mb_convert_case($fields['country'], MB_CASE_UPPER, "UTF-8");
+        }
+      }
+      else {
+        $fields['country'] = mb_convert_case($fields['country'], MB_CASE_UPPER, "UTF-8");
       }
     }
 
@@ -305,6 +326,52 @@ class CRM_Utils_Address {
     $newSequence = array_merge($newSequence, $addressSequence);
     $newSequence = array_unique($newSequence);
     return $newSequence;
+  }
+
+  /**
+   * Extract the billing fields from the form submission and format them for display.
+   *
+   * @param array $params
+   * @param int $billingLocationTypeID
+   *
+   * @return string
+   */
+  public static function getFormattedBillingAddressFieldsFromParameters($params, $billingLocationTypeID) {
+    $addressParts = array(
+      "street_address" => "billing_street_address-{$billingLocationTypeID}",
+      "city" => "billing_city-{$billingLocationTypeID}",
+      "postal_code" => "billing_postal_code-{$billingLocationTypeID}",
+      "state_province" => "state_province-{$billingLocationTypeID}",
+      "country" => "country-{$billingLocationTypeID}",
+    );
+
+    $addressFields = array();
+    foreach ($addressParts as $name => $field) {
+      $value = CRM_Utils_Array::value($field, $params);
+      $alternateName = 'billing_' . $name . '_id-' . $billingLocationTypeID;
+      $alternate2 = 'billing_' . $name . '-' . $billingLocationTypeID;
+      if (isset($params[$alternate2]) && !isset($params[$alternateName])) {
+        $alternateName = $alternate2;
+      }
+      //Include values which prepend 'billing_' to country and state_province.
+      if (CRM_Utils_Array::value($alternateName, $params)) {
+        if (empty($value) || !is_numeric($value)) {
+          $value = $params[$alternateName];
+        }
+      }
+      if (is_numeric($value) && ($name == 'state_province' || $name == 'country')) {
+        if ($name == 'state_province') {
+          $addressFields[$name] = CRM_Core_PseudoConstant::stateProvinceAbbreviation($value);
+        }
+        if ($name == 'country') {
+          $addressFields[$name] = CRM_Core_PseudoConstant::countryIsoCode($value);
+        }
+      }
+      else {
+        $addressFields[$name] = $value;
+      }
+    }
+    return CRM_Utils_Address::format($addressFields);
   }
 
 }

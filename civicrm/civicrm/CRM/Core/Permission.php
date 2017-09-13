@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.6                                                |
+ | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  * $Id$
  *
  */
@@ -134,8 +134,12 @@ class CRM_Core_Permission {
         return FALSE;
       }
       else {
+        // This is an individual permission
+        $granted = CRM_Core_Config::singleton()->userPermissionClass->check($permission);
+        // Call the permission_check hook to permit dynamic escalation (CRM-19256)
+        CRM_Utils_Hook::permission_check($permission, $granted);
         if (
-          !CRM_Core_Config::singleton()->userPermissionClass->check($permission)
+          !$granted
           && !($tempPerm && $tempPerm->check($permission))
         ) {
           //one of our 'and' conditions has not been met
@@ -411,12 +415,22 @@ class CRM_Core_Permission {
   }
 
   /**
-   * @param $module
+   * Checks that component is enabled and optionally that user has basic perm.
+   *
+   * @param string $module
+   *   Specifies the name of the CiviCRM component.
    * @param bool $checkPermission
+   *   Check not only that module is enabled, but that user has necessary
+   *   permission.
+   * @param bool $requireAllCasesPermOnCiviCase
+   *   Significant only if $module == CiviCase
+   *   Require "access all cases and activities", not just
+   *   "access my cases and activities".
    *
    * @return bool
+   *   Access to specified $module is granted.
    */
-  public static function access($module, $checkPermission = TRUE) {
+  public static function access($module, $checkPermission = TRUE, $requireAllCasesPermOnCiviCase = FALSE) {
     $config = CRM_Core_Config::singleton();
 
     if (!in_array($module, $config->enableComponents)) {
@@ -424,11 +438,17 @@ class CRM_Core_Permission {
     }
 
     if ($checkPermission) {
-      if ($module == 'CiviCase') {
-        return CRM_Case_BAO_Case::accessCiviCase();
-      }
-      else {
-        return CRM_Core_Permission::check("access $module");
+      switch ($module) {
+        case 'CiviCase':
+          $access_all_cases = CRM_Core_Permission::check("access all cases and activities");
+          $access_my_cases  = CRM_Core_Permission::check("access my cases and activities");
+          return $access_all_cases || (!$requireAllCasesPermOnCiviCase && $access_my_cases);
+
+        case 'CiviCampaign':
+          return CRM_Core_Permission::check("administer $module");
+
+        default:
+          return CRM_Core_Permission::check("access $module");
       }
     }
 
@@ -508,13 +528,14 @@ class CRM_Core_Permission {
     }
 
     // if component_id is present, ensure it is enabled
-    if (isset($item['component_id']) &&
-      $item['component_id']
-    ) {
+    if (isset($item['component_id']) && $item['component_id']) {
+      if (!isset(Civi::$statics[__CLASS__]['componentNameId'])) {
+        Civi::$statics[__CLASS__]['componentNameId'] = array_flip(CRM_Core_Component::getComponentIDs());
+      }
+      $componentName = Civi::$statics[__CLASS__]['componentNameId'][$item['component_id']];
+
       $config = CRM_Core_Config::singleton();
-      if (is_array($config->enableComponentIDs) &&
-        in_array($item['component_id'], $config->enableComponentIDs)
-      ) {
+      if (is_array($config->enableComponents) && in_array($componentName, $config->enableComponents)) {
         // continue with process
       }
       else {
@@ -552,30 +573,18 @@ class CRM_Core_Permission {
 
   /**
    * @param bool $all
+   *   Include disabled components
    * @param bool $descriptions
-   *   whether to return descriptions
+   *   Whether to return descriptions
    *
    * @return array
    */
-  public static function &basicPermissions($all = FALSE, $descriptions = FALSE) {
-    if ($descriptions) {
-      static $permissionsDesc = NULL;
-
-      if (!$permissionsDesc) {
-        $permissionsDesc = self::assembleBasicPermissions($all, $descriptions);
-      }
-
-      return $permissionsDesc;
+  public static function basicPermissions($all = FALSE, $descriptions = FALSE) {
+    $cacheKey = implode('-', array($all, $descriptions));
+    if (empty(Civi::$statics[__CLASS__][__FUNCTION__][$cacheKey])) {
+      Civi::$statics[__CLASS__][__FUNCTION__][$cacheKey] = self::assembleBasicPermissions($all, $descriptions);
     }
-    else {
-      static $permissions = NULL;
-
-      if (!$permissions) {
-        $permissions = self::assembleBasicPermissions($all, $descriptions);
-      }
-
-      return $permissions;
-    }
+    return Civi::$statics[__CLASS__][__FUNCTION__][$cacheKey];
   }
 
   /**
@@ -631,6 +640,7 @@ class CRM_Core_Permission {
     // Add any permissions defined in hook_civicrm_permission implementations.
     $module_permissions = $config->userPermissionClass->getAllModulePermissions($descriptions);
     $permissions = array_merge($permissions, $module_permissions);
+    CRM_Financial_BAO_FinancialType::permissionedFinancialTypes($permissions, $descriptions);
     return $permissions;
   }
 
@@ -761,6 +771,10 @@ class CRM_Core_Permission {
         $prefix . ts('translate CiviCRM'),
         ts('Allow User to enable multilingual'),
       ),
+      'manage tags' => array(
+        $prefix . ts('manage tags'),
+        ts('Create and rename tags'),
+      ),
       'administer reserved groups' => array(
         $prefix . ts('administer reserved groups'),
         ts('Edit and disable Reserved Groups (Needs Edit Groups)'),
@@ -779,10 +793,15 @@ class CRM_Core_Permission {
         $prefix . ts('merge duplicate contacts'),
         ts('Delete Contacts must also be granted in order for this to work.'),
       ),
+      'force merge duplicate contacts' => array(
+        $prefix . ts('force merge duplicate contacts'),
+        ts('Delete Contacts must also be granted in order for this to work.'),
+      ),
       'view debug output' => array(
         $prefix . ts('view debug output'),
         ts('View results of debug and backtrace'),
       ),
+
       'view all notes' => array(
         $prefix . ts('view all notes'),
         ts("View notes (for visible contacts) even if they're marked admin only"),
@@ -961,9 +980,7 @@ class CRM_Core_Permission {
    * @return bool
    */
   public static function isMultisiteEnabled() {
-    return CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::MULTISITE_PREFERENCES_NAME,
-      'is_enabled'
-    ) ? TRUE : FALSE;
+    return Civi::settings()->get('is_enabled') ? TRUE : FALSE;
   }
 
   /**

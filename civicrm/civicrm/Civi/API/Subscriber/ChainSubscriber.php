@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.6                                                |
+ | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -67,10 +67,12 @@ class ChainSubscriber implements EventSubscriberInterface {
    */
   public function onApiRespond(\Civi\API\Event\RespondEvent $event) {
     $apiRequest = $event->getApiRequest();
-    $result = $event->getResponse();
-    if (\CRM_Utils_Array::value('is_error', $result, 0) == 0) {
-      $this->callNestedApi($event->getApiKernel(), $apiRequest['params'], $result, $apiRequest['action'], $apiRequest['entity'], $apiRequest['version']);
-      $event->setResponse($result);
+    if ($apiRequest['version'] < 4) {
+      $result = $event->getResponse();
+      if (\CRM_Utils_Array::value('is_error', $result, 0) == 0) {
+        $this->callNestedApi($event->getApiKernel(), $apiRequest['params'], $result, $apiRequest['action'], $apiRequest['entity'], $apiRequest['version']);
+        $event->setResponse($result);
+      }
     }
   }
 
@@ -91,7 +93,7 @@ class ChainSubscriber implements EventSubscriberInterface {
 
     // We don't need to worry about nested api in the getfields/getoptions
     // actions, so just return immediately.
-    if (in_array($action, array('getfields', 'getoptions'))) {
+    if (in_array($action, array('getfields', 'getfield', 'getoptions'))) {
       return;
     }
 
@@ -132,8 +134,10 @@ class ChainSubscriber implements EventSubscriberInterface {
             //'entity_table' will be set to 'contact' & 'id' to the contact id
             //from the parent call. in this case 'contact_id' will also be
             //set to the parent's id
-            $subParams["entity_id"] = $parentAPIValues['id'];
-            $subParams['entity_table'] = 'civicrm_' . $lowercase_entity;
+            if (!($subEntity == 'line_item' && $lowercase_entity == 'contribution' && $action != 'create')) {
+              $subParams["entity_id"] = $parentAPIValues['id'];
+              $subParams['entity_table'] = 'civicrm_' . $lowercase_entity;
+            }
 
             $crm16084 = FALSE;
             if ($subEntity == 'relationship' && $lowercase_entity == 'contact') {
@@ -156,7 +160,7 @@ class ChainSubscriber implements EventSubscriberInterface {
           if ($entity != 'Contact' && \CRM_Utils_Array::value(strtolower($subEntity . "_id"), $parentAPIValues)) {
             //e.g. if event_id is in the values returned & subentity is event
             //then pass in event_id as 'id' don't do this for contact as it
-            //does some wierd things like returning primary email &
+            //does some weird things like returning primary email &
             //thus limiting the ability to chain email
             //TODO - this might need the camel treatment
             $subParams['id'] = $parentAPIValues[$subEntity . "_id"];

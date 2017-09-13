@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.6                                                |
+ | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,9 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
- * $Id: $
- *
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -104,12 +102,14 @@ class CRM_Utils_File {
    *   The path name.
    * @param bool $abort
    *   Should we abort or just return an invalid code.
-   *
-   * @return void
+   * @return bool|NULL
+   *   NULL: Folder already exists or was not specified.
+   *   TRUE: Creation succeeded.
+   *   FALSE: Creation failed.
    */
   public static function createDir($path, $abort = TRUE) {
     if (is_dir($path) || empty($path)) {
-      return;
+      return NULL;
     }
 
     CRM_Utils_File::createDir(dirname($path), $abort);
@@ -137,7 +137,6 @@ class CRM_Utils_File {
    * @param bool $verbose
    *
    * @throws Exception
-   * @return void
    */
   public static function cleanDir($target, $rmdir = TRUE, $verbose = TRUE) {
     static $exceptions = array('.', '..');
@@ -276,7 +275,8 @@ class CRM_Utils_File {
    */
   public static function addTrailingSlash($path, $slash = NULL) {
     if (!$slash) {
-      // FIXME: Defaulting to backslash on windows systems can produce unexpected results, esp for URL strings which should always use forward-slashes.
+      // FIXME: Defaulting to backslash on windows systems can produce
+      // unexpected results, esp for URL strings which should always use forward-slashes.
       // I think this fn should default to forward-slash instead.
       $slash = DIRECTORY_SEPARATOR;
     }
@@ -287,16 +287,42 @@ class CRM_Utils_File {
   }
 
   /**
-   * @param $dsn
+   * Save a fake file somewhere
+   *
+   * @param string $dir
+   *   The directory where the file should be saved.
+   * @param string $contents
+   *   Optional: the contents of the file.
+   *
+   * @return string
+   *   The filename saved, or FALSE on failure.
+   */
+  public static function createFakeFile($dir, $contents = 'delete me') {
+    $dir = self::addTrailingSlash($dir);
+    $file = 'delete-this-' . CRM_Utils_String::createRandom(10, CRM_Utils_String::ALPHANUMERIC);
+    $success = file_put_contents($dir . $file, $contents);
+
+    return ($success === FALSE) ? FALSE : $file;
+  }
+
+  /**
+   * @param string|NULL $dsn
+   *   Use NULL to load the default/active connection from CRM_Core_DAO.
+   *   Otherwise, give a full DSN string.
    * @param string $fileName
    * @param null $prefix
    * @param bool $isQueryString
    * @param bool $dieOnErrors
    */
   public static function sourceSQLFile($dsn, $fileName, $prefix = NULL, $isQueryString = FALSE, $dieOnErrors = TRUE) {
-    require_once 'DB.php';
+    if ($dsn === NULL) {
+      $db = CRM_Core_DAO::getConnection();
+    }
+    else {
+      require_once 'DB.php';
+      $db = DB::connect($dsn);
+    }
 
-    $db = DB::connect($dsn);
     if (PEAR::isError($db)) {
       die("Cannot open $dsn: " . $db->getMessage());
     }
@@ -304,6 +330,8 @@ class CRM_Utils_File {
       $db->query('SET SESSION sql_mode = STRICT_TRANS_TABLES');
     }
     $db->query('SET NAMES utf8');
+    $transactionId = CRM_Utils_Type::escape(CRM_Utils_Request::id(), 'String');
+    $db->query('SET @uniqueID = ' . "'$transactionId'");
 
     if (!$isQueryString) {
       $string = $prefix . file_get_contents($fileName);
@@ -313,10 +341,9 @@ class CRM_Utils_File {
       $string = $prefix . $fileName;
     }
 
-    //get rid of comments starting with # and --
+    // get rid of comments starting with # and --
 
-    $string = preg_replace("/^#[^\n]*$/m", "\n", $string);
-    $string = preg_replace("/^(--[^-]).*/m", "\n", $string);
+    $string = self::stripComments($string);
 
     $queries = preg_split('/;\s*$/m', $string);
     foreach ($queries as $query) {
@@ -335,6 +362,18 @@ class CRM_Utils_File {
       }
     }
   }
+  /**
+   *
+   * Strips comment from a possibly multiline SQL string
+   *
+   * @param string $string
+   *
+   * @return string
+   *   stripped string
+   */
+  public static function stripComments($string) {
+    return preg_replace("/^(#|--).*\R*/m", "", $string);
+  }
 
   /**
    * @param $ext
@@ -346,7 +385,7 @@ class CRM_Utils_File {
     if (!$extensions) {
       $extensions = CRM_Core_OptionGroup::values('safe_file_extension', TRUE);
 
-      //make extensions to lowercase
+      // make extensions to lowercase
       $extensions = array_change_key_case($extensions, CASE_LOWER);
       // allow html/htm extension ONLY if the user is admin
       // and/or has access CiviMail
@@ -361,7 +400,7 @@ class CRM_Utils_File {
         unset($extensions['htm']);
       }
     }
-    //support lower and uppercase file extensions
+    // support lower and uppercase file extensions
     return isset($extensions[strtolower($ext)]) ? TRUE : FALSE;
   }
 
@@ -386,8 +425,11 @@ class CRM_Utils_File {
   }
 
   /**
-   * Remove the 32 bit md5 we add to the fileName
-   * also remove the unknown tag if we added it
+   * Remove the 32 bit md5 we add to the fileName also remove the unknown tag if we added it.
+   *
+   * @param $name
+   *
+   * @return mixed
    */
   public static function cleanFileName($name) {
     // replace the last 33 character before the '.' with null
@@ -396,6 +438,8 @@ class CRM_Utils_File {
   }
 
   /**
+   * Make a valid file name.
+   *
    * @param string $name
    *
    * @return string
@@ -418,8 +462,10 @@ class CRM_Utils_File {
   }
 
   /**
-   * @param $path
-   * @param $ext
+   * Get files for the extension.
+   *
+   * @param string $path
+   * @param string $ext
    *
    * @return array
    */
@@ -497,13 +543,14 @@ HTACCESS;
    * Create the base file path from which all our internal directories are
    * offset. This is derived from the template compile directory set
    */
-  public static function baseFilePath($templateCompileDir = NULL) {
+  public static function baseFilePath() {
     static $_path = NULL;
     if (!$_path) {
-      if ($templateCompileDir == NULL) {
-        $config = CRM_Core_Config::singleton();
-        $templateCompileDir = $config->templateCompileDir;
+      // Note: Don't rely on $config; that creates a dependency loop.
+      if (!defined('CIVICRM_TEMPLATE_COMPILEDIR')) {
+        throw new RuntimeException("Undefined constant: CIVICRM_TEMPLATE_COMPILEDIR");
       }
+      $templateCompileDir = CIVICRM_TEMPLATE_COMPILEDIR;
 
       $path = dirname($templateCompileDir);
 
@@ -523,6 +570,8 @@ HTACCESS;
 
   /**
    * Determine if a path is absolute.
+   *
+   * @param string $path
    *
    * @return bool
    *   TRUE if absolute. FALSE if relative.
@@ -569,10 +618,12 @@ HTACCESS;
 
   /**
    * @param $directory
+   * @param string|NULL $basePath
+   *   The base path when evaluating relative paths. Should include trailing slash.
    *
    * @return string
    */
-  public static function absoluteDirectory($directory) {
+  public static function absoluteDirectory($directory, $basePath = NULL) {
     // check if directory is already absolute, if so return immediately
     // Note: Windows PHP accepts any mix of "/" or "\", so "C:\htdocs" or "C:/htdocs" would be a valid absolute path
     if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN' && preg_match(';^[a-zA-Z]:[/\\\\];', $directory)) {
@@ -585,8 +636,10 @@ HTACCESS;
     }
 
     // make everything absolute from the baseFilePath
-    $basePath = self::baseFilePath();
+    $basePath = ($basePath === NULL) ? self::baseFilePath() : $basePath;
 
+    // ensure that $basePath has a trailing slash
+    $basePath = self::addTrailingSlash($basePath);
     return $basePath . $directory;
   }
 
@@ -614,7 +667,7 @@ HTACCESS;
   /**
    * Create a path to a temporary file which can endure for multiple requests.
    *
-   * TODO: Automatic file cleanup using, eg, TTL policy
+   * @todo Automatic file cleanup using, eg, TTL policy
    *
    * @param string $prefix
    *
@@ -622,9 +675,9 @@ HTACCESS;
    * @see tempnam
    */
   public static function tempnam($prefix = 'tmp-') {
-    //$config = CRM_Core_Config::singleton();
-    //$nonce = md5(uniqid() . $config->dsn . $config->userFrameworkResourceURL);
-    //$fileName = "{$config->configAndLogDir}" . $prefix . $nonce . $suffix;
+    // $config = CRM_Core_Config::singleton();
+    // $nonce = md5(uniqid() . $config->dsn . $config->userFrameworkResourceURL);
+    // $fileName = "{$config->configAndLogDir}" . $prefix . $nonce . $suffix;
     $fileName = tempnam(sys_get_temp_dir(), $prefix);
     return $fileName;
   }
@@ -632,7 +685,7 @@ HTACCESS;
   /**
    * Create a path to a temporary directory which can endure for multiple requests.
    *
-   * TODO: Automatic file cleanup using, eg, TTL policy
+   * @todo Automatic file cleanup using, eg, TTL policy
    *
    * @param string $prefix
    *
@@ -660,6 +713,9 @@ HTACCESS;
    * @return array(string)
    */
   public static function findFiles($dir, $pattern, $relative = FALSE) {
+    if (!is_dir($dir)) {
+      return array();
+    }
     $dir = rtrim($dir, '/');
     $todos = array($dir);
     $result = array();
@@ -739,7 +795,7 @@ HTACCESS;
       }
     }
 
-    // return rename($fromDir, $toDir); // CRM-11987, https://bugs.php.net/bug.php?id=54097
+    // return rename($fromDir, $toDir); CRM-11987, https://bugs.php.net/bug.php?id=54097
 
     CRM_Utils_File::copyDir($fromDir, $toDir);
     if (!CRM_Utils_File::cleanDir($fromDir, TRUE, FALSE)) {
@@ -747,6 +803,28 @@ HTACCESS;
       return FALSE;
     }
     return TRUE;
+  }
+
+  /**
+   * Format file.
+   *
+   * @param array $param
+   * @param string $fileName
+   * @param array $extraParams
+   */
+  public static function formatFile(&$param, $fileName, $extraParams = array()) {
+    if (empty($param[$fileName])) {
+      return;
+    }
+
+    $fileParams = array(
+      'uri' => $param[$fileName]['name'],
+      'type' => $param[$fileName]['type'],
+      'location' => $param[$fileName]['name'],
+      'upload_date' => date('YmdHis'),
+    ) + $extraParams;
+
+    $param[$fileName] = $fileParams;
   }
 
   /**
@@ -774,6 +852,7 @@ HTACCESS;
       case 'image/gif':
       case 'image/x-png':
       case 'image/png':
+      case 'image/jpg':
         list($imageWidth, $imageHeight) = getimagesize($path);
         list($imageThumbWidth, $imageThumbHeight) = CRM_Contact_BAO_Contact::getThumbSize($imageWidth, $imageHeight);
         $url = "<a href=\"$url\" class='crm-image-popup'>
@@ -787,6 +866,45 @@ HTACCESS;
     }
 
     return $url;
+  }
+
+  /**
+   * Return formatted image icon
+   *
+   * @param string $imageURL
+   *   Contact's image url
+   *
+   * @return string $url
+   */
+  public static function getImageURL($imageURL) {
+    // retrieve image name from $imageURL
+    $imageURL = CRM_Utils_String::unstupifyUrl($imageURL);
+    parse_str(parse_url($imageURL, PHP_URL_QUERY), $query);
+
+    $path = CRM_Core_Config::singleton()->customFileUploadDir . $query['photo'];
+    $mimeType = 'image/' . strtolower(pathinfo($path, PATHINFO_EXTENSION));
+
+    return self::getFileURL($path, $mimeType);
+  }
+
+
+  /**
+   * Get file icon class for specific MIME Type
+   *
+   * @param string $mimeType
+   * @return string
+   */
+  public static function getIconFromMimeType($mimeType) {
+    if (!isset(Civi::$statics[__CLASS__]['mimeIcons'])) {
+      Civi::$statics[__CLASS__]['mimeIcons'] = json_decode(file_get_contents(__DIR__ . '/File/mimeIcons.json'), TRUE);
+    }
+    $iconClasses = Civi::$statics[__CLASS__]['mimeIcons'];
+    foreach ($iconClasses as $text => $icon) {
+      if (strpos($mimeType, $text) === 0) {
+        return $icon;
+      }
+    }
+    return $iconClasses['*'];
   }
 
 }
