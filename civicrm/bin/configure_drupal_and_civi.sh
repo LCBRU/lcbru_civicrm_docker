@@ -11,14 +11,23 @@ fi
 # Link to the LCBRU modules and custom code
 ln -s /lcbru_civicrm/lcbru_custom /var/www/html/sites/all/
 ln -s /lcbru_civicrm/lcbru_modules /var/www/html/sites/all/modules/
-chown -R www-data:www-data /lcbru_civicrm
 
-# Set up external databases
-ln -s /lcbru_civicrm/settings/external_databases.php /var/www/html/sites/default/
-printf "\n\ninclude 'external_databases.php';\n\n" >> /var/www/html/sites/default/settings.php
+# Set the locations of the custom code directories
+drush cvapi Setting.create sequential=1 customPHPPathDir="/var/www/html/sites/all/lcbru_custom/civicrm_php/"
+drush cvapi Setting.create sequential=1 customTemplateDir="/var/www/html/sites/all/lcbru_custom/civicrm_templates/"
+drush cvapi Setting.create sequential=1 extensionsDir="/var/www/html/sites/all/lcbru_custom/civicrm_extensions/" 
+
+# Enable each of the modules in the semi-colon
+# delimited list of packages in the ENABLED_PACKAGES
+# environment variable provided by docker-compose.yml
+IFS=';' read -ra PACKAGES <<< "$ENABLED_PACKAGES"
+for i in "${PACKAGES[@]}"; do
+    echo "----- $i ------"
+    drush pm-enable $i -y
+done
 
 # Ensure that www-data can access all data created by the install
-chown -R www-data:www-data sites
+setfacl --recursive -m u:www-data:rwx sites
 
 # Start apache with the rewrite module enabled
 a2enmod rewrite

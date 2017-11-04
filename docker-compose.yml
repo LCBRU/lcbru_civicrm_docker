@@ -11,6 +11,8 @@ services:
       MYSQL_DATABASE: drupal
     expose:
       - "3306"
+    ports:
+      - 3306:3306
     command: mysqld --sql_mode="STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
   mysql_logger:
     restart: always
@@ -36,6 +38,6 @@ services:
       DRUPAL_ACCOUNT_PASS: baggins
       DRUPAL_SITE_MAIL: lcbruit@le.ac.uk
       DRUPAL_SITE_NAME: Development CiviCRM
-      ENABLED_PACKAGES: lcbru;fast;participant_search
-      BASE_URL: uhlbriccsapp06
+      ENABLED_PACKAGES: predict,cardiomet
+      BASE_URL: uhlbriccsdev
       INSTALL_DATABASE: 1

@@ -28,9 +28,6 @@ ADD civicrm-4.7.17-drupal.tar.gz /civicrm
 ADD info.php /
 ADD dblib_driver_for_sql_server /dblib_driver_for_sql_server
 
-#RUN sed -i.bak 's/max_execution_time = 30/max_execution_time = 300/g' /etc/php5/apache2/php.ini
-#RUN sed -i.bak 's/memory_limit = 128M/memory_limit = 1024M/g' /etc/php5/apache2/php.ini
-
 # Install script to run at start up
 COPY bin /usr/local/bin
 
@@ -62,7 +59,5 @@ RUN ln -s /var/www/html/sites/all/modules/dblib_driver_for_sql_server/dblib /var
 # Give apache access to the files
 RUN chown -R www-data:www-data sites
 RUN chown -R www-data:www-data /civicrm
-RUN chown -R www-data:www-data /var/www/html/sites/all/modules/dblib_driver_for_sql_server/
-RUN chown -R www-data:www-data /var/www/html/includes/database/dblib
 
 CMD /usr/local/bin/configure_drupal_and_civi.sh
