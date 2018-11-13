@@ -38,6 +38,6 @@ services:
       DRUPAL_ACCOUNT_PASS: baggins
       DRUPAL_SITE_MAIL: lcbruit@le.ac.uk
       DRUPAL_SITE_NAME: Development CiviCRM
-      ENABLED_PACKAGES: predict,cardiomet
+      ENABLED_PACKAGES: ${ENBALED_PACKAGES}
       BASE_URL: uhlbriccsdev
       INSTALL_DATABASE: 1

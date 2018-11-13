@@ -36,4 +36,7 @@ a2enmod rewrite
 { crontab -u www-data -l ; echo "* * * * * export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin && export PHP_INI_DIR=/usr/local/etc/php && cd /var/www/html/ && /usr/local/bin/drush cron >> /var/log/cron.log 2>&1"; } | crontab -u www-data -
 { crontab -u www-data -l ; echo "* * * * * export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin && export PHP_INI_DIR=/usr/local/etc/php && cd /var/www/html/ && /usr/local/bin/drush civicrm-api -u 1 job.execute >> /var/log/cron.log 2>&1"; } | crontab -u www-data -
 
+chown -R www-data:www-data /var/www/html/sites
+chown -R www-data:www-data /civicrm
+
 /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf

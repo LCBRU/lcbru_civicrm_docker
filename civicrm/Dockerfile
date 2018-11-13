@@ -2,7 +2,7 @@ FROM php:5-apache
 MAINTAINER Richard Bramley <rabramley@gmail.com>
 
 # install the PHP extensions we need
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y libpng12-dev libjpeg-dev libpq-dev mysql-client vim wget zip cron supervisor ssmtp
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y libpng-dev libjpeg-dev libpq-dev mysql-client vim wget zip cron supervisor ssmtp
 RUN docker-php-ext-configure gd --with-png-dir=/usr --with-jpeg-dir=/usr
 RUN docker-php-ext-install gd
 RUN docker-php-ext-install mbstring pdo pdo_mysql pdo_pgsql zip mysql mysqli sockets
@@ -17,7 +17,7 @@ RUN docker-php-ext-install pdo_dblib
 
 RUN rm -rf /var/lib/apt/lists/*
 
-RUN php -r "readfile('https://s3.amazonaws.com/files.drush.org/drush.phar');" > drush
+RUN php -r "readfile('https://github.com/drush-ops/drush/releases/download/8.1.17/drush.phar');" > drush
 RUN php drush core-status
 RUN chmod +x drush
 RUN mv drush /usr/local/bin
@@ -39,6 +39,10 @@ RUN drush dl drupal-7.54
 RUN mv drupal-7.54 html
 
 WORKDIR /var/www/html
+
+# Give apache access to the files
+RUN chown -R www-data:www-data sites
+RUN chown -R www-data:www-data /civicrm
 
 # Copy CiviCRM into place
 RUN ln -s /civicrm/civicrm /var/www/html/sites/all/modules/
