@@ -22,9 +22,20 @@ drush cvapi Setting.create sequential=1 extensionsDir="/var/www/html/sites/all/l
 # environment variable provided by docker-compose.yml
 IFS=';' read -ra PACKAGES <<< "$ENABLED_PACKAGES"
 for i in "${PACKAGES[@]}"; do
-    echo "----- $i ------"
-    drush pm-enable $i -y
+    if [ "$i" != "test_data" ]
+    then
+        echo "----- $i ------"
+        drush pm-enable $i -y
+    fi
 done
+
+if [ -n "$INSTALL_TEST_DATA" ]
+then
+	echo "+++++++++++++++++++ Installing Test Data +++++++++++++++++++++"
+    drush pm-enable test_data -y
+else
+	echo "+++++++++++++++++ NOT Installing Test Data +++++++++++++++++++"
+fi
 
 # Ensure that www-data can access all data created by the install
 setfacl --recursive -m u:www-data:rwx sites
@@ -38,5 +49,6 @@ a2enmod rewrite
 
 chown -R www-data:www-data /var/www/html/sites
 chown -R www-data:www-data /civicrm
+chown -R www-data:www-data /var/www/html/sites/all/lcbru_custom/civicrm_extensions
 
 /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf

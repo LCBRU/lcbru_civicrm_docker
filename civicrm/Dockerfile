@@ -2,7 +2,7 @@ FROM php:5-apache
 MAINTAINER Richard Bramley <rabramley@gmail.com>
 
 # install the PHP extensions we need
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y libpng-dev libjpeg-dev libpq-dev mysql-client vim wget zip cron supervisor ssmtp
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y libpng-dev libjpeg-dev libpq-dev mysql-client vim wget zip cron supervisor ssmtp acl
 RUN docker-php-ext-configure gd --with-png-dir=/usr --with-jpeg-dir=/usr
 RUN docker-php-ext-install gd
 RUN docker-php-ext-install mbstring pdo pdo_mysql pdo_pgsql zip mysql mysqli sockets
