@@ -1,43 +1,12 @@
 version: '2'
 
 services:
-  mysql:
-    restart: always
-    build: ./mysql
-    environment:
-      MYSQL_ROOT_PASSWORD: Lupin!
-      MYSQL_USER: civicrm_user
-      MYSQL_PASSWORD: Nipon
-      MYSQL_DATABASE: drupal
-    expose:
-      - "3306"
-    ports:
-      - 3306:3306
-    command: mysqld --sql_mode="STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
-  mysql_logger:
-    restart: always
-    build: ./mysql_logger
-    links:
-      - mysql:mysql
   civicrm:
     restart: always
     build: ./civicrm
-    links:
-      - mysql_logger:mysql
     ports:
       - "80:80"
     volumes:
       - ./lcbru_civicrm:/lcbru_civicrm
-    environment:
-      MYSQL_ROOT_PASSWORD: Lupin!
-      MYSQL_USER: civicrm_user
-      MYSQL_PASSWORD: Nipon
-      MYSQL_DRUPAL_DATABASE: drupal
-      DRUPAL_ACCOUNT_MAIL: lcbruit@le.ac.uk
-      DRUPAL_ACCOUNT_NAME: bilbo
-      DRUPAL_ACCOUNT_PASS: baggins
-      DRUPAL_SITE_MAIL: lcbruit@le.ac.uk
-      DRUPAL_SITE_NAME: Development CiviCRM
-      ENABLED_PACKAGES: ${ENBALED_PACKAGES}
-      BASE_URL: uhlbriccsdev
-      INSTALL_DATABASE: 1
+    env_file:
+     - .env

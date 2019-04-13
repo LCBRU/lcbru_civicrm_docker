@@ -2,6 +2,10 @@
 
 if [ -n "$INSTALL_DATABASE" ]
 then
+        INSTALL_DATABASE=0
+fi
+if [ $INSTALL_DATABASE -gt 0 ]
+then
 	echo "+++++++++++++++++++ Installing Drupal and CiviCRM +++++++++++++++++++++"
     install_drupal_database.sh
 else
@@ -9,13 +13,12 @@ else
 fi
 
 # Link to the LCBRU modules and custom code
-ln -s /lcbru_civicrm/lcbru_custom /var/www/html/sites/all/
-ln -s /lcbru_civicrm/lcbru_modules /var/www/html/sites/all/modules/
+rm -f /var/local/civicrm/drupal/sites/all/lcbru_custom
+rm -f /var/local/civicrm/drupal/sites/all/modules/lcbru_modules
+ln -s /lcbru_civicrm/lcbru_custom /var/local/civicrm/drupal/sites/all/
+ln -s /lcbru_civicrm/lcbru_modules /var/local/civicrm/drupal/sites/all/modules/
 
-# Set the locations of the custom code directories
-drush cvapi Setting.create sequential=1 customPHPPathDir="/var/www/html/sites/all/lcbru_custom/civicrm_php/"
-drush cvapi Setting.create sequential=1 customTemplateDir="/var/www/html/sites/all/lcbru_custom/civicrm_templates/"
-drush cvapi Setting.create sequential=1 extensionsDir="/var/www/html/sites/all/lcbru_custom/civicrm_extensions/" 
+cp /lcbru_civicrm/settings/test/* /var/local/civicrm/drupal/sites/default
 
 # Enable each of the modules in the semi-colon
 # delimited list of packages in the ENABLED_PACKAGES
@@ -47,8 +50,20 @@ a2enmod rewrite
 { crontab -u www-data -l ; echo "* * * * * export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin && export PHP_INI_DIR=/usr/local/etc/php && cd /var/www/html/ && /usr/local/bin/drush cron >> /var/log/cron.log 2>&1"; } | crontab -u www-data -
 { crontab -u www-data -l ; echo "* * * * * export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin && export PHP_INI_DIR=/usr/local/etc/php && cd /var/www/html/ && /usr/local/bin/drush civicrm-api -u 1 job.execute >> /var/log/cron.log 2>&1"; } | crontab -u www-data -
 
-chown -R www-data:www-data /var/www/html/sites
+chown -R www-data:www-data /var/local/civicrm/drupal/sites
 chown -R www-data:www-data /civicrm
-chown -R www-data:www-data /var/www/html/sites/all/lcbru_custom/civicrm_extensions
+chown -R www-data:www-data /var/local/civicrm/drupal/sites/all/lcbru_custom/civicrm_extensions
+
+drush pm-enable ctools -y
+drush pm-enable devel -y
+drush pm-enable views -y
+drush pm-enable datatables -y
+drush pm-enable dblib -y
+drush pm-enable ldap -y
+
+drush up
+
+# Complains if the LDAP version has changed
+drush sql-query "DELETE FROM authmap;"
 
 /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf

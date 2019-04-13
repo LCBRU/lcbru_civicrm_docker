@@ -26,7 +26,3 @@ drush up
 
 # Create Cron User
 drush user-create cronsystem --mail="donotreply@uhl-tr.nhs.uk"
-
-# Set up external databases
-ln -s /lcbru_civicrm/settings/external_databases.php /var/www/html/sites/default/
-printf "\n\ninclude 'external_databases.php';\n\n" >> /var/www/html/sites/default/settings.php

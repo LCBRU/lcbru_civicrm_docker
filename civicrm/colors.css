@@ -1,0 +1,58 @@
+/* $Id: colors.css,v 1.1.2.1 2010/12/18 23:01:23 jmburnz Exp $ */
+
+/* ---------- Color Module Styles ----------- */
+
+body {
+    background-color: #1f1d1c;
+    color: #fbe4e4;
+  }
+  #page-wrapper,
+  #main,
+  body.overlay {
+    background-color: #fbe4e4;
+    color: #3b3b3b;
+  }
+  .comment .comment-arrow {
+    border-color: #fbe4e4;
+  }
+  #main-menu-links li a.active,
+  #main-menu-links li.active-trail a {
+    background: #fbe4e4;
+  }
+  .tabs ul.primary li a.active {
+    background-color: #fbe4e4;
+  }
+  .tabs ul.primary li.active a {
+    background-color: #fbe4e4;
+    border-bottom: 1px solid #fbe4e4;
+  }
+  #header {
+    background-color: #fbe4e4;
+    background-image: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#b16e2f), to(#fbe4e4));
+    background-image: -moz-linear-gradient(-90deg, #b16e2f, #fbe4e4);
+  }
+  a {
+    color: #d61111;
+  }
+  a:hover,
+  a:focus {
+    color: #ff0f0f;
+  }
+  a:active {
+    color: #ff4545;
+  }
+  .sidebar .block {
+    background-color: #fbe4e4;
+    border-color: #6b1414;
+  }
+  #footer-wrapper {
+    background: #1f1d1c;
+  }
+  .region-header,
+  .region-header a,
+  .region-header li a.active,
+  #name-and-slogan,
+  #name-and-slogan a,
+  #secondary-menu-links li a {
+    color: #fffeff;
+  }
