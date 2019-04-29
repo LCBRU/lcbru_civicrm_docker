@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
 
-if [ -n "$INSTALL_DATABASE" ]
+if [ -z "$INSTALL_DATABASE" ]
 then
         INSTALL_DATABASE=0
 fi
+
 if [ $INSTALL_DATABASE -gt 0 ]
 then
 	echo "+++++++++++++++++++ Installing Drupal and CiviCRM +++++++++++++++++++++"
     install_drupal_database.sh
 else
-	echo "+++++++++++++++++++ NOT Installing Anything! +++++++++++++++++++++"
+	echo "+++++++++++++++++++ Installing Settings +++++++++++++++++++++"
+    cp /settings/* /var/local/civicrm/drupal/sites/default
 fi
 
 # Link to the LCBRU modules and custom code
@@ -17,8 +19,6 @@ rm -f /var/local/civicrm/drupal/sites/all/lcbru_custom
 rm -f /var/local/civicrm/drupal/sites/all/modules/lcbru_modules
 ln -s /lcbru_civicrm/lcbru_custom /var/local/civicrm/drupal/sites/all/
 ln -s /lcbru_civicrm/lcbru_modules /var/local/civicrm/drupal/sites/all/modules/
-
-cp /lcbru_civicrm/settings/test/* /var/local/civicrm/drupal/sites/default
 
 # Enable each of the modules in the semi-colon
 # delimited list of packages in the ENABLED_PACKAGES
