@@ -37,7 +37,7 @@ then
         INSTALL_TEST_DATA=0
 fi
 
-if [ $INSTALL_DATABASE -gt 0 ]
+if [ $INSTALL_TEST_DATA -gt 0 ]
 then
 	echo "+++++++++++++++++++ Installing Test Data +++++++++++++++++++++"
     drush pm-enable test_data -y
