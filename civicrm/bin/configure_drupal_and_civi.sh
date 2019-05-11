@@ -32,7 +32,12 @@ for i in "${PACKAGES[@]}"; do
     fi
 done
 
-if [ -n "$INSTALL_TEST_DATA" ]
+if [ -z "$INSTALL_TEST_DATA" ]
+then
+        INSTALL_TEST_DATA=0
+fi
+
+if [ $INSTALL_DATABASE -gt 0 ]
 then
 	echo "+++++++++++++++++++ Installing Test Data +++++++++++++++++++++"
     drush pm-enable test_data -y
