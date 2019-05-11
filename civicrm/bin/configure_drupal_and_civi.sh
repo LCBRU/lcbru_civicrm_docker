@@ -55,18 +55,11 @@ a2enmod rewrite
 { crontab -u www-data -l ; echo "* * * * * export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin && export PHP_INI_DIR=/usr/local/etc/php && cd /var/www/html/ && /usr/local/bin/drush cron >> /var/log/cron.log 2>&1"; } | crontab -u www-data -
 { crontab -u www-data -l ; echo "* * * * * export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin && export PHP_INI_DIR=/usr/local/etc/php && cd /var/www/html/ && /usr/local/bin/drush civicrm-api -u 1 job.execute >> /var/log/cron.log 2>&1"; } | crontab -u www-data -
 
+drush up
+
 chown -R www-data:www-data /var/local/civicrm/drupal/sites
 chown -R www-data:www-data /civicrm
 chown -R www-data:www-data /var/local/civicrm/drupal/sites/all/lcbru_custom/civicrm_extensions
-
-# drush pm-enable ctools -y
-# drush pm-enable devel -y
-# drush pm-enable views -y
-# drush pm-enable datatables -y
-# drush pm-enable dblib -y
-# drush pm-enable ldap -y
-
-drush up
 
 # Complains if the LDAP version has changed
 drush sql-query "DELETE FROM authmap;"

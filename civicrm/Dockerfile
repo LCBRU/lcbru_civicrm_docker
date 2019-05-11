@@ -39,9 +39,6 @@ ADD settings /settings
 ADD info.php /
 ADD modules /modules
 
-# Install script to run at start up
-COPY bin /usr/local/bin
-
 RUN mkdir /var/local/civicrm
 
 WORKDIR /var/local/civicrm
@@ -85,5 +82,8 @@ RUN ln -s /var/local/civicrm/drupal/sites/all/modules/dblib_driver_for_sql_serve
 # Give apache access to the files
 RUN chown -R www-data:www-data sites
 RUN chown -R www-data:www-data /civicrm
+
+# Install script to run at start up
+COPY bin /usr/local/bin
 
 CMD /usr/local/bin/configure_drupal_and_civi.sh
