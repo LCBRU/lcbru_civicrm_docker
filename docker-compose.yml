@@ -3,7 +3,10 @@ version: '2'
 services:
   civicrm:
     restart: always
-    build: ./civicrm
+    build:
+      context: ./civicrm
+      args:                                                       
+        STYLING: ${STYLING}
     ports:
       - "80:80"
     volumes:

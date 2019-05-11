@@ -1,6 +1,7 @@
 FROM php:5-apache
 MAINTAINER Richard Bramley <rabramley@gmail.com>
 
+ARG STYLING
 
 # Change where Drupal is loaded
 ENV APACHE_DOCUMENT_ROOT /var/local/civicrm/drupal
@@ -38,6 +39,7 @@ ADD antonelli-7.x-1.0-rc1.tar.gz /antonelli
 ADD settings /settings
 ADD info.php /
 ADD modules /modules
+ADD style /style
 
 RUN mkdir /var/local/civicrm
 
@@ -54,17 +56,16 @@ RUN chown -R www-data:www-data sites
 RUN chown -R www-data:www-data /civicrm
 RUN chown -R www-data:www-data /antonelli
 RUN chown -R www-data:www-data /settings
+RUN chown -R www-data:www-data /style
 
 # Copy CiviCRM into place
 RUN ln -s /civicrm/civicrm /var/local/civicrm/drupal/sites/all/modules/
 RUN ln -s /antonelli/antonelli /var/local/civicrm/drupal/sites/all/themes/
 
-#
-# TO DO:
-#
 # The specific sub-folder will have to be set on a per instance basis
-ADD colors.css /var/local/civicrm/drupal/sites/default/files/color/antonelli-d1bee6f5/
-ADD images.jpeg /var/local/civicrm/drupal/sites/default/files/
+RUN mkdir -p /var/local/civicrm/drupal/sites/default/files/color/antonelli-d1bee6f5/
+RUN cp -p /style/${STYLING}/colors.css /var/local/civicrm/drupal/sites/default/files/color/antonelli-d1bee6f5/colors.css
+RUN cp -p /style/${STYLING}/images.jpeg /var/local/civicrm/drupal/sites/default/files/images.jpeg
 
 # Install Drupal modules
 RUN drush dl ctools datatables devel views -y
