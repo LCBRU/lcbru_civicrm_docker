@@ -59,12 +59,12 @@ chown -R www-data:www-data /var/local/civicrm/drupal/sites
 chown -R www-data:www-data /civicrm
 chown -R www-data:www-data /var/local/civicrm/drupal/sites/all/lcbru_custom/civicrm_extensions
 
-drush pm-enable ctools -y
-drush pm-enable devel -y
-drush pm-enable views -y
-drush pm-enable datatables -y
-drush pm-enable dblib -y
-drush pm-enable ldap -y
+# drush pm-enable ctools -y
+# drush pm-enable devel -y
+# drush pm-enable views -y
+# drush pm-enable datatables -y
+# drush pm-enable dblib -y
+# drush pm-enable ldap -y
 
 drush up
 
