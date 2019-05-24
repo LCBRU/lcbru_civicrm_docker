@@ -9,10 +9,10 @@ if [ $INSTALL_DATABASE -gt 0 ]
 then
 	echo "+++++++++++++++++++ Installing Drupal and CiviCRM +++++++++++++++++++++"
     install_drupal_database.sh
-else
-	echo "+++++++++++++++++++ Installing Settings +++++++++++++++++++++"
-    cp /settings/* /var/local/civicrm/drupal/sites/default
 fi
+
+echo "+++++++++++++++++++ Installing Settings +++++++++++++++++++++"
+cp /settings/* /var/local/civicrm/drupal/sites/default
 
 # Link to the LCBRU modules and custom code
 rm -f /var/local/civicrm/drupal/sites/all/lcbru_custom

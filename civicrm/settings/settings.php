@@ -73,6 +73,14 @@ $databases['reporting']['default'] = array (
       'port'     => '',
       'prefix'   => '',
     );
+
+$databases['redcap']['default'] = array (
+    'database' => getenv("MYSQL_REDCAP_DATABASE"),
+    'username' => getenv("MYSQL_REDCAP_USERNAME"),
+    'password' => getenv("MYSQL_REDCAP_PASSWORD"),
+    'host'     => getenv("MYSQL_REDCAP_HOST"),
+    'driver'   => 'mysql',
+    );
  
 /**
  * Salt for one-time login links, cancel links and form tokens, etc.
