@@ -160,7 +160,7 @@ define( 'CIVICRM_TEMPLATE_COMPILEDIR', '/var/local/civicrm/drupal/sites/default/
  *      define( 'CIVICRM_UF_BASEURL' , 'http://www.example.com/joomla/' );
  *
  */
-define( 'CIVICRM_UF_BASEURL'      , 'http://lcbru-test.xuhl-tr.nhs.uk/' );
+define( 'CIVICRM_UF_BASEURL'      , getenv("CIVICRM_UF_BASEURL") );
 
 /*
  * If you are using any CiviCRM script in the bin directory that

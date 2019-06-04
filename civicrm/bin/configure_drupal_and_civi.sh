@@ -8,6 +8,14 @@ fi
 if [ $INSTALL_DATABASE -gt 0 ]
 then
 	echo "+++++++++++++++++++ Installing Drupal and CiviCRM +++++++++++++++++++++"
+
+    # Setup Drupal
+    echo "***************************************"
+    echo "${DRUPAL_ACCOUNT_NAME}"
+    echo "***************************************"
+    echo "${DRUPAL_ACCOUNT_PASS}"
+    echo "***************************************"
+
     install_drupal_database.sh
 fi
 
@@ -60,6 +68,16 @@ drush up
 chown -R www-data:www-data /var/local/civicrm/drupal/sites
 chown -R www-data:www-data /civicrm
 chown -R www-data:www-data /var/local/civicrm/drupal/sites/all/lcbru_custom/civicrm_extensions
+
+# Setup CiviCRM custom directories
+
+CIVICRM_CUSTOM_TEMPLATE_DIR=s:67:\"/var/local/civicrm/drupal/sites/all/lcbru_custom/civicrm_templates/\"\;
+CIVICRM_CUSTOM_PHP_PATH_DIR=s:61:\"/var/local/civicrm/drupal/sites/all/lcbru_custom/civicrm_php/\"\;
+CIVICRM_CUSTOM_EXTENSIONS_DIR=s:68:\"/var/local/civicrm/drupal/sites/all/lcbru_custom/civicrm_extensions/\"\;
+
+drush sql-query --database=civicrm "INSERT INTO civicrm_setting (name, value, domain_id, contact_id, is_domain, component_id, created_date, created_id) VALUES ('customTemplateDir', '${CIVICRM_CUSTOM_TEMPLATE_DIR}', 1, NULL, 1, NULL, '2000-01-01', 1)"
+drush sql-query --database=civicrm "INSERT INTO civicrm_setting (name, value, domain_id, contact_id, is_domain, component_id, created_date, created_id) VALUES ('customPHPPathDir', '${CIVICRM_CUSTOM_PHP_PATH_DIR}', 1, NULL, 1, NULL, '2000-01-01', 1)"
+drush sql-query --database=civicrm "INSERT INTO civicrm_setting (name, value, domain_id, contact_id, is_domain, component_id, created_date, created_id) VALUES ('extensionsDir', '${CIVICRM_CUSTOM_EXTENSIONS_DIR}', 1, NULL, 1, NULL, '2000-01-01', 1)"
 
 # Complains if the LDAP version has changed
 drush sql-query "DELETE FROM authmap;"
